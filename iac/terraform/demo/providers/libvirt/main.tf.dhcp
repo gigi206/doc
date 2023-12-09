@@ -1,0 +1,99 @@
+# https://registry.terraform.io/providers/dmacvicar/libvirt/latest/docs
+
+# To use with dhcp:
+# uncomment libvirt_domain.debian12.network_interface.wait_for_lease
+# comment   libvirt_cloudinit_disk.commoninit.meta_data
+# Comment   output.ip.value and uncomment the other one that is commented
+# uncomment all the block libvirt_network.mynetwork
+# Comment  libvirt_domain.debian12.network_interface.network_name by libvirt_network.mynetwork.name
+
+terraform {
+  required_providers {
+    libvirt = {
+      source  = "dmacvicar/libvirt"
+      version = "0.7.6"
+    }
+  }
+}
+
+provider "libvirt" {
+  uri = "qemu:///system"
+}
+
+data "template_file" "user_data" {
+  template = file("${path.module}/data/cloud_init.cfg")
+}
+
+data "template_file" "meta_data" {
+  template = file("${path.module}/data/network_interfaces.cfg")
+}
+
+# resource "libvirt_network" "mynetwork" {
+#   name        = "mynetwork"
+#   # mode      = "nat"
+#   # domain    = "mynetwork.local"
+#   # addresses = ["192.168.100.0/24"]
+
+#   # dhcp {
+#   #   enabled = false
+#   # }
+#   # xml {
+#   #   xslt = templatefile("${abspath(path.root)}/data/mynetwork.xsl", {
+#   #     name          = "mynetwork"
+#   #     ip            = var.network_ip
+#   #     mac           = var.network_mac
+#   #     uuid          = uuid()
+#   #     servername    = libvirt_domain.debian12.name
+#   #   })
+#   # }
+# }
+
+resource "libvirt_cloudinit_disk" "commoninit" {
+  name      = "commoninit.iso"
+  user_data = data.template_file.user_data.rendered
+  # meta_data = data.template_file.meta_data.rendered
+}
+
+resource "libvirt_volume" "debian12-qcow2" {
+  name    = "debian12.qcow2"
+  pool    = "default"
+  format  = "qcow2"
+  source  = "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2"
+  # source  = "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-amd64.qcow2"
+  # source  = "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2"
+}
+
+resource "libvirt_domain" "debian12" {
+  name      = "debian12"
+  memory    = "2048"
+  vcpu      = 2
+  cloudinit = libvirt_cloudinit_disk.commoninit.id
+
+  network_interface {
+    network_name    = "default"
+    # network_name    = libvirt_network.mynetwork.name
+    wait_for_lease  = true
+    # mac           = "52:54:00:AE:8C:E8"
+  }
+
+  disk {
+    volume_id = libvirt_volume.debian12-qcow2.id
+  }
+
+  console {
+    type        = "pty"
+    target_type = "serial"
+    target_port = "0"
+  }
+
+  graphics {
+    type        = "spice"
+    listen_type = "address"
+    autoport    = true
+  }
+}
+
+output "ip" {
+  value = libvirt_domain.debian12.network_interface.0.addresses.0
+  # value = data.template_file.meta_data.rendered
+}
