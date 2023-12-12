@@ -22,7 +22,7 @@ packer {
 locals {
   data_source_content = {
     "/autoinst.xml" = templatefile("${abspath(path.root)}/data/autoinst.pkrtpl.hcl", {
-      build_password_encrypted  = "$6$bxkRE0QFnkOmZ.Vn$wF3BOHVIYzcb4nVMJEKm1D3d45Nf0bV84J82Gs7lM0c1UvpByiB26qpxm3g/v/QjF7ylJDMKOCndGy.HZHRZr1"
+      build_password_encrypted = "$6$bxkRE0QFnkOmZ.Vn$wF3BOHVIYzcb4nVMJEKm1D3d45Nf0bV84J82Gs7lM0c1UvpByiB26qpxm3g/v/QjF7ylJDMKOCndGy.HZHRZr1"
       scc_email                = "gigix001@yopmail.com"
       scc_code                 = "62DD2B70C460163B"
     })
