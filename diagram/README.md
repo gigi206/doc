@@ -1,0 +1,1 @@
+* [diagram](https://diagrams.mingrammer.com/docs/getting-started/examples) python library
